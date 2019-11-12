@@ -7,33 +7,32 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "../include/sha256.h"
+#include "sha256.h"
 
 
-#define CACHE_LINE_LENGTH 8
 typedef unsigned char byte;
 
 #define LE2BE_32U(num) ((num>>24)&0xff) | ((num<<8)&0xff0000) | ((num>>8)&0xff00) | ((num<<24)&0xff000000)
 
 
-void print_cache_line(const byte* data)
+void print_cache_line(const byte* data, const size_t num_bytes)
 {
     printf("CACHE LINE: ");
-    for (const byte* data_p = data; data_p != data + CACHE_LINE_LENGTH; ++data_p)
+    for (const byte* data_p = data; data_p != data + num_bytes; ++data_p)
         printf("0x%02x, ", *data_p);
-    printf("[%d bytes]\n", CACHE_LINE_LENGTH);
+    printf("[%lu bytes]\n", num_bytes);
 }
 
-uint32_t hash_block(const byte* data)
+uint32_t hash_block(const byte* data, size_t num_bytes)
 {
-    print_cache_line(data);
+    print_cache_line(data, num_bytes);
 
     // Acquire hash
     static SHA256_CTX ctx;
     static byte sha_bytes[SHA256_BLOCK_SIZE];
 
     sha256_init(&ctx);
-    sha256_update(&ctx, data, CACHE_LINE_LENGTH);
+    sha256_update(&ctx, data, num_bytes);
     sha256_final(&ctx, sha_bytes);
 
 

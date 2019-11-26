@@ -1,7 +1,11 @@
-#include "include/mumbo_jumbo.h"
+#include "mumbo_jumbo.h"
 
-
-#define CACHE_LINE_LENGTH 8
+/**
+ * This is the cache line.
+ */
+typedef struct{
+    byte _content[8];
+} CacheLine;
 
 /**
  * This is the sensitive data that is stored in the RAM, it can be altered in any time
@@ -21,19 +25,19 @@ byte sensitive_data_in_ram[] = {
  * @param offset An offset.
  * @param cache_line Destination cache line buffer.
  */
-void fetch(int offset, byte *cache_line)
+void fetch(int offset, CacheLine* cache_line)
 {
     // This values are secured inside the CPU EPROM, they never go into the RAM
     static const uint32_t hashes_in_eprom[] = {
-            0x5f608e42,
-            0x81edb73a,
-            0xc920cf75,
-            0x691200be,
+        0x5f608e42,
+        0x81edb73a,
+        0xc920cf75,
+        0x691200be,
     };
 
     byte* fetch_address = sensitive_data_in_ram + offset;
 
-    const uint32_t block_hash = hash_block(fetch_address, CACHE_LINE_LENGTH);
+    const uint32_t block_hash = hash_block(fetch_address, sizeof(CacheLine));
     const uint32_t eprom_hash = hashes_in_eprom[offset / 8];
 
     const bool hash_not_valid = block_hash != eprom_hash;
@@ -49,17 +53,17 @@ void fetch(int offset, byte *cache_line)
         raise(SIGBUS);
     }
 
-    memcpy(cache_line, fetch_address, CACHE_LINE_LENGTH);
+    memcpy(cache_line, fetch_address, sizeof(CacheLine));
 }
 
 void fetch_demo()
 {
-    byte fetched_data[CACHE_LINE_LENGTH];
+    CacheLine cache_line;
 
-    fetch(0 * CACHE_LINE_LENGTH, fetched_data);
-    fetch(1 * CACHE_LINE_LENGTH, fetched_data);
-    fetch(2 * CACHE_LINE_LENGTH, fetched_data);
-    fetch(3 * CACHE_LINE_LENGTH, fetched_data);
+    fetch(0 * sizeof(CacheLine), &cache_line);
+    fetch(1 * sizeof(CacheLine), &cache_line);
+    fetch(2 * sizeof(CacheLine), &cache_line);
+    fetch(3 * sizeof(CacheLine), &cache_line);
 }
 
 int main (void)
@@ -70,7 +74,7 @@ int main (void)
     printf("\n\n");
     const uint32_t spoiler = 0x0badc0de;
     printf("=== ... until we've 'spoiled' the data in RAM with 0x%08x\n", spoiler);
-    *((uint32_t*)(sensitive_data_in_ram + CACHE_LINE_LENGTH)) = LE2BE_32U(spoiler);
+    *((uint32_t*)(sensitive_data_in_ram + sizeof(CacheLine))) = htonl(spoiler);
 
     fetch_demo();
 }

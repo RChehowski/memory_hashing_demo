@@ -1,11 +1,7 @@
 //
 // Created by Raman Chakhouski on 11/12/19.
 //
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
+#include "mumbo_jumbo.h"
 #include "sha256.h"
 
 
